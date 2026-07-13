@@ -10,6 +10,7 @@ class AppTextField extends StatelessWidget {
   final TextEditingController? controller;
   final TextInputType? keyboardType;
   final String? label;
+  final String? initialValue;
 
   const AppTextField({
     super.key,
@@ -21,12 +22,14 @@ class AppTextField extends StatelessWidget {
     this.controller,
     this.keyboardType,
     this.label,
+    this.initialValue,
   });
 
   @override
   Widget build(BuildContext context) {
-    final field = TextField(
+    final field = TextFormField(
       controller: controller,
+      initialValue: controller == null ? initialValue : null,
       obscureText: isPassword && obscureText,
       keyboardType: keyboardType,
       style: const TextStyle(

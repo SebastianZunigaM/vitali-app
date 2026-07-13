@@ -46,3 +46,7 @@ app.*.map.json
 
 # Environment variables - never commit real credentials
 .env
+
+# Temporary PDF extraction files
+pdf_content.txt
+*pdf_content.txt

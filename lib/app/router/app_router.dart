@@ -13,6 +13,11 @@ import 'package:vitali/features/profile/presentation/pages/profile_page.dart';
 import 'package:vitali/features/assistant/presentation/pages/assistant_page.dart';
 import 'package:vitali/features/settings/presentation/pages/settings_page.dart';
 import 'package:vitali/features/onboarding/presentation/pages/onboarding_page.dart';
+import 'package:vitali/features/onboarding/presentation/pages/imc_form_page.dart';
+import 'package:vitali/features/onboarding/presentation/pages/imc_result_page.dart';
+import 'package:vitali/features/onboarding/presentation/pages/lifestyle_page.dart';
+import 'package:vitali/features/onboarding/presentation/pages/lifestyle_selected_page.dart';
+import 'package:vitali/features/progress/presentation/pages/progress_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) => _router);
 
@@ -28,12 +33,35 @@ final _router = GoRouter(
       builder: (context, state) => const LoginPage(),
     ),
     GoRoute(
+      path: AppRoutes.loginConfirmation,
+      builder: (context, state) => const LoginPage(
+        showSuccessBanner: true,
+        prefilledEmail: 'usuario@ejemplo.com',
+      ),
+    ),
+    GoRoute(
       path: AppRoutes.register,
       builder: (context, state) => const RegisterPage(),
     ),
     GoRoute(
       path: AppRoutes.onboarding,
       builder: (context, state) => const OnboardingPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.imcForm,
+      builder: (context, state) => const ImcFormPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.imcResult,
+      builder: (context, state) => const ImcResultPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.lifestyle,
+      builder: (context, state) => const LifestylePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.lifestyleSelected,
+      builder: (context, state) => const LifestyleSelectedPage(),
     ),
     GoRoute(
       path: AppRoutes.home,
@@ -66,6 +94,10 @@ final _router = GoRouter(
     GoRoute(
       path: AppRoutes.settings,
       builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.progress,
+      builder: (context, state) => const ProgressPage(),
     ),
   ],
 );
