@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vitali/app/providers/daily_providers.dart';
+import 'package:vitali/app/providers/session_provider.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
 import 'package:vitali/shared/widgets/content_card.dart';
@@ -14,14 +17,14 @@ import 'package:vitali/shared/widgets/vitali_bottom_nav.dart';
 /// Pantalla 08+09+10 — Plan de Alimentación.
 /// Estado local mínimo para cambiar visualmente entre Desayuno y Almuerzo.
 /// Los indicadores diarios y el tip nutricional son globales del día (no cambian por tab).
-class NutritionPage extends StatefulWidget {
+class NutritionPage extends ConsumerStatefulWidget {
   const NutritionPage({super.key});
 
   @override
-  State<NutritionPage> createState() => _NutritionPageState();
+  ConsumerState<NutritionPage> createState() => _NutritionPageState();
 }
 
-class _NutritionPageState extends State<NutritionPage> {
+class _NutritionPageState extends ConsumerState<NutritionPage> {
   int _activeTab = 0;
 
   // Opciones estáticas por franja — índice = tab del MealTabsSelector
@@ -48,6 +51,12 @@ class _NutritionPageState extends State<NutritionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(sessionProvider);
+    final lifestyleTitle = session.lifestyle?.title ?? 'Deportista';
+    final water = ref.watch(waterCountProvider);
+    final salt = ref.watch(saltGramsProvider);
+    final sugar = ref.watch(sugarGramsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -62,10 +71,10 @@ class _NutritionPageState extends State<NutritionPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Encabezado de sección (scrollable)
-                  const SectionHeader(
+                  SectionHeader(
                     emoji: '🥗',
                     title: 'Plan de Alimentación',
-                    subtitle: 'Personalizado para Deportista',
+                    subtitle: 'Personalizado para $lifestyleTitle',
                   ),
 
                   Padding(
@@ -99,15 +108,28 @@ class _NutritionPageState extends State<NutritionPage> {
                               DailyIndicatorRow(
                                 emoji: '💧',
                                 label: 'Agua',
-                                valueText: '0/10 vasos',
+                                valueText: '$water/10 vasos',
                                 color: AppColors.water,
                                 pastelColor: AppColors.waterPastel,
-                                statusText:
-                                    '10 vasos más para llegar a tu meta',
-                                statusBg: AppColors.waterPastel,
-                                statusTextColor: AppColors.water,
-                                onDecrement: null,
-                                onIncrement: () {},
+                                statusText: water >= 10
+                                    ? '✅ Meta de agua alcanzada'
+                                    : '${10 - water} vasos más para llegar a tu meta',
+                                statusBg: water >= 10
+                                    ? AppColors.successBg
+                                    : AppColors.waterPastel,
+                                statusTextColor: water >= 10
+                                    ? AppColors.successText
+                                    : AppColors.water,
+                                onDecrement: water > 0
+                                    ? () => ref
+                                        .read(waterCountProvider.notifier)
+                                        .state--
+                                    : null,
+                                onIncrement: water < 10
+                                    ? () => ref
+                                        .read(waterCountProvider.notifier)
+                                        .state++
+                                    : null,
                               ),
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 12),
@@ -120,14 +142,28 @@ class _NutritionPageState extends State<NutritionPage> {
                               DailyIndicatorRow(
                                 emoji: '🧂',
                                 label: 'Sal',
-                                valueText: '0/6g',
+                                valueText: '$salt/6g',
                                 color: AppColors.salt,
                                 pastelColor: AppColors.saltPastel,
-                                statusText: '✅ Consumo adecuado',
-                                statusBg: AppColors.successBg,
-                                statusTextColor: AppColors.successText,
-                                onDecrement: null,
-                                onIncrement: () {},
+                                statusText: salt >= 6
+                                    ? '⚠️ Límite diario alcanzado'
+                                    : '✅ Consumo adecuado',
+                                statusBg: salt >= 6
+                                    ? AppColors.saltPastel
+                                    : AppColors.successBg,
+                                statusTextColor: salt >= 6
+                                    ? AppColors.salt
+                                    : AppColors.successText,
+                                onDecrement: salt > 0
+                                    ? () => ref
+                                        .read(saltGramsProvider.notifier)
+                                        .state--
+                                    : null,
+                                onIncrement: salt < 6
+                                    ? () => ref
+                                        .read(saltGramsProvider.notifier)
+                                        .state++
+                                    : null,
                               ),
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 12),
@@ -140,14 +176,28 @@ class _NutritionPageState extends State<NutritionPage> {
                               DailyIndicatorRow(
                                 emoji: '🍬',
                                 label: 'Azúcar',
-                                valueText: '0/35g',
+                                valueText: '$sugar/35g',
                                 color: AppColors.sugar,
                                 pastelColor: AppColors.sugarPastel,
-                                statusText: '✅ Consumo adecuado',
-                                statusBg: AppColors.successBg,
-                                statusTextColor: AppColors.successText,
-                                onDecrement: null,
-                                onIncrement: () {},
+                                statusText: sugar >= 35
+                                    ? '⚠️ Límite diario alcanzado'
+                                    : '✅ Consumo adecuado',
+                                statusBg: sugar >= 35
+                                    ? AppColors.sugarPastel
+                                    : AppColors.successBg,
+                                statusTextColor: sugar >= 35
+                                    ? AppColors.sugar
+                                    : AppColors.successText,
+                                onDecrement: sugar > 0
+                                    ? () => ref
+                                        .read(sugarGramsProvider.notifier)
+                                        .state -= 5
+                                    : null,
+                                onIncrement: sugar < 35
+                                    ? () => ref
+                                        .read(sugarGramsProvider.notifier)
+                                        .state += 5
+                                    : null,
                               ),
                             ],
                           ),

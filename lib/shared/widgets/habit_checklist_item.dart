@@ -51,9 +51,12 @@ class HabitChecklistItem extends StatelessWidget {
           Expanded(
             child: Text(
               label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 12,
+                height: 1.3,
               ),
             ),
           ),

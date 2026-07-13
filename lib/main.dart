@@ -27,6 +27,17 @@ class VitaliApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        final clamped = mq.textScaler.clamp(
+          minScaleFactor: 1.0,
+          maxScaleFactor: 1.1,
+        );
+        return MediaQuery(
+          data: mq.copyWith(textScaler: clamped),
+          child: child!,
+        );
+      },
     );
   }
 }

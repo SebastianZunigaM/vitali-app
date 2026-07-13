@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 
 /// Selector de franjas de comida: Desayuno / Almuerzo / Cena.
-/// Tarjeta blanca con tres pestañas tipo píldora.
-/// La pestaña activa usa brandMid de fondo y texto blanco.
-/// Parametrizable para P08 (Desayuno), P10 (Almuerzo), P11 (Cena).
 class MealTabsSelector extends StatelessWidget {
   final int activeIndex;
   final void Function(int)? onTabChanged;
@@ -45,24 +42,31 @@ class MealTabsSelector extends StatelessWidget {
               onTap: () => onTabChanged?.call(i),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 9),
+                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
                 decoration: BoxDecoration(
                   color: isActive ? AppColors.brandMid : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(tab.$1, style: const TextStyle(fontSize: 14)),
+                    Text(tab.$1, style: const TextStyle(fontSize: 13)),
                     const SizedBox(width: 4),
-                    Text(
-                      tab.$2,
-                      style: TextStyle(
-                        color: isActive
-                            ? AppColors.textOnGreen
-                            : AppColors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          tab.$2,
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: isActive
+                                ? AppColors.textOnGreen
+                                : AppColors.textPrimary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ],

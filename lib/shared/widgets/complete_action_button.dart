@@ -6,28 +6,37 @@ import 'package:vitali/core/constants/app_colors.dart';
 /// Reutilizable en ExerciseCard (P13) y hábitos de Progreso (P14).
 class CompleteActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
+  final bool isCompleted;
 
-  const CompleteActionButton({super.key, this.onPressed});
+  const CompleteActionButton({
+    super.key,
+    this.onPressed,
+    this.isCompleted = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final bg = isCompleted ? AppColors.successBg : AppColors.brandMain;
+    final fg = isCompleted ? AppColors.successText : AppColors.textOnGreen;
+    final label = isCompleted ? 'Completado' : 'Marcar como completado';
+
     return GestureDetector(
       onTap: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.brandMain,
+          color: bg,
           borderRadius: BorderRadius.circular(30),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.check_rounded, color: AppColors.textOnGreen, size: 16),
-            SizedBox(width: 8),
+          children: [
+            Icon(Icons.check_rounded, color: fg, size: 16),
+            const SizedBox(width: 8),
             Text(
-              'Marcar como completado',
+              label,
               style: TextStyle(
-                color: AppColors.textOnGreen,
+                color: fg,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),

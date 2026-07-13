@@ -1,16 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:vitali/app/providers/daily_providers.dart';
+import 'package:vitali/app/providers/session_provider.dart';
 import 'package:vitali/core/constants/app_colors.dart';
+import 'package:vitali/core/constants/app_constants.dart';
+import 'package:vitali/features/auth/data/auth_repository.dart';
 
 /// Barra de aplicación superior del shell principal.
 /// Muestra la marca compacta VITALI + isotipo y el botón Salir.
-/// Reutilizable en Alimentación, Ejercicio y Progreso.
-class VitaliAppBar extends StatelessWidget {
+/// [onSalir] opcional: si no se provee, ejecuta signOut y navega a Login.
+class VitaliAppBar extends ConsumerWidget {
   final VoidCallback? onSalir;
 
   const VitaliAppBar({super.key, this.onSalir});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> handleSalir() async {
+      // 1. Cerrar sesión en Supabase
+      try {
+        await ref.read(authRepositoryProvider).signOut();
+      } catch (_) {
+        // Si no hay sesión activa, ignorar y continuar con la limpieza.
+      }
+
+      // 2. Limpiar sesión local y todos los providers de estado diario
+      ref.read(sessionProvider.notifier).state = const AppSessionData();
+      ref.read(waterCountProvider.notifier).state = 0;
+      ref.read(saltGramsProvider.notifier).state = 0;
+      ref.read(sugarGramsProvider.notifier).state = 0;
+      ref.read(completedExercisesProvider.notifier).state = const {};
+      ref.read(manualHabitsProvider.notifier).state = const {};
+
+      // 3. Navegar a Login
+      if (context.mounted) context.go(AppRoutes.login);
+    }
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -52,9 +78,9 @@ class VitaliAppBar extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                // Botón Salir — pastilla verde oscuro con borde sutil
+                // Botón Salir — ejecuta signOut luego navega a Login
                 GestureDetector(
-                  onTap: onSalir,
+                  onTap: onSalir ?? () => handleSalir(),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,

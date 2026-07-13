@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vitali/app/providers/session_provider.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
+import 'package:vitali/core/services/supabase_service.dart';
+import 'package:vitali/features/onboarding/domain/models/lifestyle_option.dart';
+import 'package:vitali/features/profile/data/profile_repository.dart';
+import 'package:vitali/features/profile/domain/models/profile_data.dart';
 import 'package:vitali/shared/widgets/category_grid.dart';
+import 'package:vitali/shared/widgets/feedback_banner.dart';
 import 'package:vitali/shared/widgets/green_header.dart';
 import 'package:vitali/shared/widgets/info_pastel_card.dart';
 import 'package:vitali/shared/widgets/primary_gradient_button.dart';
@@ -10,13 +17,68 @@ import 'package:vitali/shared/widgets/selectable_category_card.dart';
 import 'package:vitali/shared/widgets/selection_summary_card.dart';
 
 /// Pantalla 07 — Selección de Estilo de Vida: Estado Seleccionado.
-/// Muestra la categoría «Deportista» seleccionada, la tarjeta de confirmación
-/// y el botón de acción habilitado. Datos estáticos para demo.
-class LifestyleSelectedPage extends StatelessWidget {
-  const LifestyleSelectedPage({super.key});
+/// Guarda el perfil completo en Supabase al confirmar el plan personalizado.
+class LifestyleSelectedPage extends ConsumerStatefulWidget {
+  final LifestyleOption? selectedLifestyle;
+
+  const LifestyleSelectedPage({super.key, this.selectedLifestyle});
+
+  @override
+  ConsumerState<LifestyleSelectedPage> createState() =>
+      _LifestyleSelectedPageState();
+}
+
+class _LifestyleSelectedPageState extends ConsumerState<LifestyleSelectedPage> {
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  Future<void> _saveAndContinue(LifestyleOption selected) async {
+    final session = ref.read(sessionProvider);
+    final imcData = session.imcResult;
+    final lifestyle = session.lifestyle ?? selected;
+
+    final user = SupabaseService.client.auth.currentUser;
+
+    if (user == null) {
+      setState(() =>
+          _errorMessage = 'Debes iniciar sesión para guardar tu perfil.');
+      return;
+    }
+
+    if (imcData == null) {
+      setState(() => _errorMessage = 'Faltan datos del onboarding.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final profile = ProfileData.fromSession(
+        userId: user.id,
+        email: user.email ?? '',
+        imc: imcData,
+        lifestyle: lifestyle,
+      );
+      await ref.read(profileRepositoryProvider).upsertProfile(profile);
+      if (mounted) context.go(AppRoutes.nutrition);
+    } catch (_) {
+      if (mounted) {
+        setState(() =>
+            _errorMessage =
+                'No se pudo guardar tu perfil. Inténtalo de nuevo.');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final selected = widget.selectedLifestyle ?? LifestyleOption.fallback;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -61,66 +123,61 @@ class LifestyleSelectedPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Cuadrícula 2×3 — Deportista seleccionado
+                  // Grid 2×3 con la opción seleccionada resaltada
                   CategoryGrid(
-                    items: const [
-                      SelectableCategoryCard(
-                        emoji: '📚',
-                        title: 'Estudiante',
-                        description: 'Paso varias horas sentado/a estudiando',
-                      ),
-                      SelectableCategoryCard(
-                        emoji: '💼',
-                        title: 'Trabajador/a',
-                        description:
-                            'Mi jornada implica trabajo de oficina o físico',
-                      ),
-                      SelectableCategoryCard(
-                        emoji: '🏃',
-                        title: 'Deportista',
-                        description:
-                            'Hago ejercicio regularmente (4-5 días/semana)',
-                        isSelected: true,
-                      ),
-                      SelectableCategoryCard(
-                        emoji: '🏆',
-                        title: 'Atleta',
-                        description:
-                            'Entrenamiento intensivo diario o competitivo',
-                      ),
-                      SelectableCategoryCard(
-                        emoji: '🌿',
-                        title: 'Adulto mayor',
-                        description: 'Busco mantener movilidad y bienestar',
-                      ),
-                      SelectableCategoryCard(
-                        emoji: '🛋️',
-                        title: 'Persona sedentaria',
-                        description: 'Poco movimiento en mi rutina diaria',
-                      ),
-                    ],
+                    items: LifestyleOption.all.map((opt) {
+                      return SelectableCategoryCard(
+                        emoji: opt.emoji,
+                        title: opt.title,
+                        description: opt.description,
+                        isSelected: opt.id == selected.id,
+                      );
+                    }).toList(),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Tarjeta de confirmación de selección
-                  const SelectionSummaryCard(
-                    emoji: '🏃',
-                    value: 'Deportista',
+                  // Tarjeta de confirmación dinámica
+                  SelectionSummaryCard(
+                    emoji: selected.emoji,
+                    value: selected.title,
                   ),
 
                   const SizedBox(height: 20),
 
-                  // Botón habilitado
-                  PrimaryGradientButton(
-                    label: 'Ver mi plan personalizado',
-                    hasArrow: true,
-                    onPressed: () => context.go(AppRoutes.nutrition),
-                  ),
+                  // ── Feedback de error ─────────────────────────────────
+                  if (_errorMessage != null) ...[
+                    FeedbackBanner(
+                      message: _errorMessage!,
+                      type: FeedbackBannerType.error,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // ── Botón / Loading ───────────────────────────────────
+                  _isLoading
+                      ? const SizedBox(
+                          height: 50,
+                          child: Center(
+                            child: SizedBox(
+                              width: 26,
+                              height: 26,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: AppColors.brandMain,
+                              ),
+                            ),
+                          ),
+                        )
+                      : PrimaryGradientButton(
+                          label: 'Ver mi plan personalizado',
+                          hasArrow: true,
+                          onPressed: () => _saveAndContinue(selected),
+                        ),
 
                   const SizedBox(height: 16),
 
-                  // Tarjeta informativa azul pastel (sin cambios)
+                  // Tarjeta informativa azul pastel
                   const InfoPastelCard(
                     emoji: '✨',
                     title:
@@ -137,4 +194,3 @@ class LifestyleSelectedPage extends StatelessWidget {
     );
   }
 }
-

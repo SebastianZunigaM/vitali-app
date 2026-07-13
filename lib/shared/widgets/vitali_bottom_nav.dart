@@ -3,7 +3,6 @@ import 'package:vitali/core/constants/app_colors.dart';
 
 /// Barra de navegación inferior del shell principal.
 /// 3 secciones: Alimentación (0), Ejercicio (1), Progreso (2).
-/// La sección activa muestra barra indicadora superior, ícono y texto en brandMain.
 class VitaliBottomNav extends StatelessWidget {
   final int activeIndex;
   final void Function(int)? onTap;
@@ -33,14 +32,17 @@ class VitaliBottomNav extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 60,
+          height: 62,
           child: Row(
-            children: List.generate(3, (i) => _NavItem(
-              label: _labels[i],
-              icon: _icons[i],
-              isActive: i == activeIndex,
-              onTap: () => onTap?.call(i),
-            )),
+            children: List.generate(
+              3,
+              (i) => _NavItem(
+                label: _labels[i],
+                icon: _icons[i],
+                isActive: i == activeIndex,
+                onTap: () => onTap?.call(i),
+              ),
+            ),
           ),
         ),
       ),
@@ -70,25 +72,30 @@ class _NavItem extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Barra indicadora superior en tab activo
+            // Barra indicadora superior — solo ocupa espacio cuando está activa
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               height: 3,
               width: isActive ? 28 : 0,
-              margin: const EdgeInsets.only(bottom: 6),
+              margin: const EdgeInsets.only(bottom: 5),
               decoration: BoxDecoration(
                 color: AppColors.brandMain,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             Icon(icon, color: color, size: 22),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: color,
                 fontSize: 10,
+                height: 1.0,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w400,
               ),
             ),

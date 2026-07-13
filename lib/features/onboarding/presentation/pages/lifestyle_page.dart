@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vitali/app/providers/session_provider.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
+import 'package:vitali/features/onboarding/domain/models/lifestyle_option.dart';
 import 'package:vitali/shared/widgets/category_grid.dart';
 import 'package:vitali/shared/widgets/green_header.dart';
 import 'package:vitali/shared/widgets/info_pastel_card.dart';
@@ -9,12 +12,13 @@ import 'package:vitali/shared/widgets/primary_gradient_button.dart';
 import 'package:vitali/shared/widgets/selectable_category_card.dart';
 
 /// Pantalla 06 — Selección de Estilo de Vida.
-/// Cuadrícula 2×3 de categorías seleccionables. Estado inicial: ninguna seleccionada.
-class LifestylePage extends StatelessWidget {
+/// Grid 2×3 generado desde LifestyleOption.all.
+/// Tocar cualquier tarjeta navega a P07 con la opción seleccionada como extra.
+class LifestylePage extends ConsumerWidget {
   const LifestylePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -59,49 +63,25 @@ class LifestylePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Cuadrícula 2×3 de categorías
+                  // Grid 2×3 generado desde la fuente de datos tipada
                   CategoryGrid(
-                    items: [
-                      const SelectableCategoryCard(
-                        emoji: '📚',
-                        title: 'Estudiante',
-                        description: 'Paso varias horas sentado/a estudiando',
-                      ),
-                      const SelectableCategoryCard(
-                        emoji: '💼',
-                        title: 'Trabajador/a',
-                        description:
-                            'Mi jornada implica trabajo de oficina o físico',
-                      ),
-                      SelectableCategoryCard(
-                        emoji: '🏃',
-                        title: 'Deportista',
-                        description:
-                            'Hago ejercicio regularmente (4-5 días/semana)',
-                        onTap: () => context.push(AppRoutes.lifestyleSelected),
-                      ),
-                      const SelectableCategoryCard(
-                        emoji: '🏆',
-                        title: 'Atleta',
-                        description:
-                            'Entrenamiento intensivo diario o competitivo',
-                      ),
-                      const SelectableCategoryCard(
-                        emoji: '🌿',
-                        title: 'Adulto mayor',
-                        description: 'Busco mantener movilidad y bienestar',
-                      ),
-                      const SelectableCategoryCard(
-                        emoji: '🛋️',
-                        title: 'Persona sedentaria',
-                        description: 'Poco movimiento en mi rutina diaria',
-                      ),
-                    ],
+                    items: LifestyleOption.all.map((opt) {
+                      return SelectableCategoryCard(
+                        emoji: opt.emoji,
+                        title: opt.title,
+                        description: opt.description,
+                        onTap: () {
+                          ref.read(sessionProvider.notifier).state =
+                              ref.read(sessionProvider).copyWith(lifestyle: opt);
+                          context.push(AppRoutes.lifestyleSelected, extra: opt);
+                        },
+                      );
+                    }).toList(),
                   ),
 
                   const SizedBox(height: 24),
 
-                  // Botón deshabilitado hasta seleccionar categoría
+                  // Botón deshabilitado — se habilita en P07 tras confirmar
                   const PrimaryGradientButton(
                     label: 'Ver mi plan personalizado',
                     hasArrow: true,

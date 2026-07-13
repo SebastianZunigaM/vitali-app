@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vitali/app/providers/daily_providers.dart';
+import 'package:vitali/app/providers/session_provider.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
 import 'package:vitali/shared/widgets/exercise_card.dart';
@@ -13,14 +16,14 @@ import 'package:vitali/shared/widgets/vitali_bottom_nav.dart';
 /// Pantalla 12 + 13 — Rutina de Ejercicios (lista + detalle expandido).
 /// Estado local mínimo: _expandedIndex controla qué tarjeta está abierta (acordeón).
 /// Por defecto inicia con Circuito de fuerza expandido para mostrar el estado P13.
-class ExercisePage extends StatefulWidget {
+class ExercisePage extends ConsumerStatefulWidget {
   const ExercisePage({super.key});
 
   @override
-  State<ExercisePage> createState() => _ExercisePageState();
+  ConsumerState<ExercisePage> createState() => _ExercisePageState();
 }
 
-class _ExercisePageState extends State<ExercisePage> {
+class _ExercisePageState extends ConsumerState<ExercisePage> {
   // Inicia con índice 2 expandido (Circuito de fuerza = estado P13)
   int? _expandedIndex = 2;
 
@@ -70,8 +73,23 @@ class _ExercisePageState extends State<ExercisePage> {
     });
   }
 
+  void _toggleCompleted(int index) {
+    final current = ref.read(completedExercisesProvider);
+    final updated = Set<int>.from(current);
+    if (updated.contains(index)) {
+      updated.remove(index);
+    } else {
+      updated.add(index);
+    }
+    ref.read(completedExercisesProvider.notifier).state = updated;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(sessionProvider);
+    final lifestyleTitle = session.lifestyle?.title ?? 'Deportista';
+    final completedExercises = ref.watch(completedExercisesProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -89,27 +107,30 @@ class _ExercisePageState extends State<ExercisePage> {
                   SectionHeader(
                     emoji: '🏃',
                     title: 'Rutina de Ejercicios',
-                    subtitle: 'Deportista · Cardio y Fuerza',
-                    bottomWidget: Row(
-                      children: const [
-                        MetricChip(
-                          value: '85 min',
-                          label: 'total',
-                          icon: Icons.timer_outlined,
-                        ),
-                        SizedBox(width: 8),
-                        MetricChip(
-                          value: '5',
-                          label: 'ejercicios',
-                          icon: Icons.fitness_center_rounded,
-                        ),
-                        SizedBox(width: 8),
-                        MetricChip(
-                          value: '0',
-                          label: 'completados',
-                          icon: Icons.check_circle_outline_rounded,
-                        ),
-                      ],
+                    subtitle: '$lifestyleTitle · Cardio y Fuerza',
+                    bottomWidget: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          const MetricChip(
+                            value: '85 min',
+                            label: 'total',
+                            icon: Icons.timer_outlined,
+                          ),
+                          const SizedBox(width: 8),
+                          const MetricChip(
+                            value: '5',
+                            label: 'ejercicios',
+                            icon: Icons.fitness_center_rounded,
+                          ),
+                          const SizedBox(width: 8),
+                          MetricChip(
+                            value: '${completedExercises.length}',
+                            label: 'completados',
+                            icon: Icons.check_circle_outline_rounded,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -140,11 +161,12 @@ class _ExercisePageState extends State<ExercisePage> {
                               duration: e.duration,
                               intensity: e.intensity,
                               isExpanded: _expandedIndex == i,
+                              isCompleted: completedExercises.contains(i),
                               description: e.description,
                               onToggleExpanded: e.description != null
                                   ? () => _toggleExpanded(i)
                                   : null,
-                              onCompletePressed: () {},
+                              onCompletePressed: () => _toggleCompleted(i),
                             ),
                           );
                         }),

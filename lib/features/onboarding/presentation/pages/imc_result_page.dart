@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
+import 'package:vitali/features/onboarding/domain/models/imc_result_data.dart';
 import 'package:vitali/shared/widgets/app_outline_button.dart';
 import 'package:vitali/shared/widgets/app_text_field.dart';
 import 'package:vitali/shared/widgets/content_card.dart';
@@ -13,14 +14,17 @@ import 'package:vitali/shared/widgets/primary_gradient_button.dart';
 import 'package:vitali/shared/widgets/two_column_field_row.dart';
 
 /// Pantalla 05 — Calculadora de IMC: Resultado.
-/// Muestra datos del formulario pre-rellenados y la tarjeta de resultado IMC.
+/// Recibe [ImcResultData] desde ImcFormPage vía GoRouter extra.
+/// Si se abre sin datos, usa [ImcResultData.fallback] para demo visual.
 class ImcResultPage extends StatelessWidget {
-  const ImcResultPage({super.key});
+  final ImcResultData? data;
 
-  static const double _imcValue = 24.9;
+  const ImcResultPage({super.key, this.data});
 
   @override
   Widget build(BuildContext context) {
+    final result = data ?? ImcResultData.fallback;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -34,17 +38,17 @@ class ImcResultPage extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      '👋 ¡Hola, usuario!',
-                      style: TextStyle(
+                      '👋 ¡Hola, ${result.name}!',
+                      style: const TextStyle(
                         color: AppColors.textOnGreen,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 6),
-                    Text(
+                    const SizedBox(height: 6),
+                    const Text(
                       'Calculemos tu Índice de Masa Corporal',
                       style: TextStyle(
                         color: AppColors.textSlogan,
@@ -65,7 +69,7 @@ class ImcResultPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Datos completados del formulario
+                  // Datos del formulario (pre-rellenados con los valores ingresados)
                   ContentCard(
                     title: 'Tus datos',
                     child: Column(
@@ -76,7 +80,7 @@ class ImcResultPage extends StatelessWidget {
                           hint: 'Tu nombre completo',
                           icon: Icons.person_outline_rounded,
                           keyboardType: TextInputType.name,
-                          initialValue: 'Usuario Demo',
+                          initialValue: result.name,
                         ),
 
                         const SizedBox(height: 14),
@@ -87,16 +91,22 @@ class ImcResultPage extends StatelessWidget {
                             hint: 'años',
                             icon: Icons.calendar_today_outlined,
                             keyboardType: TextInputType.number,
-                            initialValue: '19',
+                            initialValue: result.age.toString(),
                           ),
                           right: AppTextField(
                             label: 'Peso',
                             hint: 'kg',
                             icon: Icons.monitor_weight_outlined,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            initialValue: '90',
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                            initialValue: result.weight
+                                .toStringAsFixed(
+                                  result.weight == result.weight.roundToDouble()
+                                      ? 0
+                                      : 1,
+                                ),
                           ),
                         ),
 
@@ -106,10 +116,11 @@ class ImcResultPage extends StatelessWidget {
                           label: 'Altura',
                           hint: 'ej: 1.70',
                           icon: Icons.height_rounded,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          initialValue: '1.90',
+                          keyboardType:
+                              const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                          initialValue: result.height.toStringAsFixed(2),
                         ),
 
                         const SizedBox(height: 24),
@@ -130,23 +141,23 @@ class ImcResultPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // Valor IMC + badge clasificación
-                        const ImcResultCard(
-                          imcValue: _imcValue,
-                          classification: ImcClassification.healthy,
+                        ImcResultCard(
+                          imcValue: result.imc,
+                          classification: result.classification,
                         ),
 
                         const SizedBox(height: 20),
 
                         // Escala visual
-                        const ImcScaleBar(imcValue: _imcValue),
+                        ImcScaleBar(imcValue: result.imc),
 
                         const SizedBox(height: 20),
 
-                        // Meta recomendada
-                        const InfoPastelCard(
+                        // Meta recomendada (dinámica según clasificación)
+                        InfoPastelCard(
                           emoji: '🎯',
                           title: 'Meta recomendada',
-                          body: 'Mantener el peso',
+                          body: result.recommendedGoal,
                           backgroundColor: AppColors.successBg,
                           titleColor: AppColors.brandMid,
                           bodyColor: AppColors.brandMid,
@@ -155,12 +166,11 @@ class ImcResultPage extends StatelessWidget {
 
                         const SizedBox(height: 10),
 
-                        // Recomendación del día
-                        const InfoPastelCard(
+                        // Recomendación del día (dinámica según clasificación)
+                        InfoPastelCard(
                           emoji: '💡',
                           title: 'Recomendación del día',
-                          body:
-                              'Incluye frutas y verduras de colores en cada comida',
+                          body: result.dailyRecommendation,
                           backgroundColor: AppColors.tipPastel,
                         ),
 

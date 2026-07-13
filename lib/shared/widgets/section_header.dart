@@ -58,10 +58,13 @@ class SectionHeader extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.textSlogan,
                         fontSize: 11,
                         fontWeight: FontWeight.w400,
+                        height: 1.3,
                       ),
                     ),
                   ],

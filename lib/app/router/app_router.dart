@@ -14,6 +14,8 @@ import 'package:vitali/features/assistant/presentation/pages/assistant_page.dart
 import 'package:vitali/features/settings/presentation/pages/settings_page.dart';
 import 'package:vitali/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:vitali/features/onboarding/presentation/pages/imc_form_page.dart';
+import 'package:vitali/features/onboarding/domain/models/imc_result_data.dart';
+import 'package:vitali/features/onboarding/domain/models/lifestyle_option.dart';
 import 'package:vitali/features/onboarding/presentation/pages/imc_result_page.dart';
 import 'package:vitali/features/onboarding/presentation/pages/lifestyle_page.dart';
 import 'package:vitali/features/onboarding/presentation/pages/lifestyle_selected_page.dart';
@@ -34,9 +36,9 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.loginConfirmation,
-      builder: (context, state) => const LoginPage(
+      builder: (context, state) => LoginPage(
         showSuccessBanner: true,
-        prefilledEmail: 'usuario@ejemplo.com',
+        prefilledEmail: state.extra as String?,
       ),
     ),
     GoRoute(
@@ -53,7 +55,9 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.imcResult,
-      builder: (context, state) => const ImcResultPage(),
+      builder: (context, state) => ImcResultPage(
+        data: state.extra as ImcResultData?,
+      ),
     ),
     GoRoute(
       path: AppRoutes.lifestyle,
@@ -61,7 +65,9 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.lifestyleSelected,
-      builder: (context, state) => const LifestyleSelectedPage(),
+      builder: (context, state) => LifestyleSelectedPage(
+        selectedLifestyle: state.extra as LifestyleOption?,
+      ),
     ),
     GoRoute(
       path: AppRoutes.home,

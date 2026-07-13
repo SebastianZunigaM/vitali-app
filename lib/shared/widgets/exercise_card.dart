@@ -4,16 +4,15 @@ import 'package:vitali/shared/widgets/complete_action_button.dart';
 import 'package:vitali/shared/widgets/intensity_badge.dart';
 
 /// Tarjeta individual de ejercicio con soporte de expansión acordeón.
-/// Estado colapsado (P12): emoji + título + duración + IntensityBadge
-///   + botón circular + chevron abajo.
-/// Estado expandido (P13): misma cabecera + descripción + CompleteActionButton.
-/// Todos los parámetros de expansión son opcionales para mantener retrocompatibilidad.
+/// El botón circular tiene su propio GestureDetector — funciona en todas las
+/// tarjetas independientemente de si tienen descripción expandible.
 class ExerciseCard extends StatelessWidget {
   final String emoji;
   final String title;
   final String duration;
   final ExerciseIntensity intensity;
   final bool isExpanded;
+  final bool isCompleted;
   final String? description;
   final VoidCallback? onCompletePressed;
   final VoidCallback? onToggleExpanded;
@@ -25,6 +24,7 @@ class ExerciseCard extends StatelessWidget {
     required this.duration,
     required this.intensity,
     this.isExpanded = false,
+    this.isCompleted = false,
     this.description,
     this.onCompletePressed,
     this.onToggleExpanded,
@@ -55,8 +55,8 @@ class ExerciseCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(emoji, style: const TextStyle(fontSize: 28)),
-                const SizedBox(width: 12),
+                Text(emoji, style: const TextStyle(fontSize: 26)),
+                const SizedBox(width: 10),
 
                 // Título + duración + badge de intensidad
                 Expanded(
@@ -65,21 +65,23 @@ class ExerciseCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 5),
                       Row(
                         children: [
                           const Icon(
                             Icons.access_time_rounded,
-                            size: 13,
+                            size: 12,
                             color: AppColors.textSecondary,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 3),
                           Text(
                             duration,
                             style: const TextStyle(
@@ -87,29 +89,41 @@ class ExerciseCard extends StatelessWidget {
                               fontSize: 11,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          IntensityBadge(intensity: intensity),
+                          const SizedBox(width: 6),
+                          Flexible(child: IntensityBadge(intensity: intensity)),
                         ],
                       ),
                     ],
                   ),
                 ),
 
-                // Botón circular de acción
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    color: AppColors.brandMain,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.play_arrow_rounded,
-                    color: AppColors.textOnGreen,
-                    size: 20,
+                const SizedBox(width: 8),
+
+                // Botón circular — tiene su propio GestureDetector para no
+                // depender de la expansión del acordeón.
+                GestureDetector(
+                  onTap: onCompletePressed,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: isCompleted
+                          ? AppColors.successBg
+                          : AppColors.brandMain,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isCompleted
+                          ? Icons.check_rounded
+                          : Icons.play_arrow_rounded,
+                      color: isCompleted
+                          ? AppColors.successText
+                          : AppColors.textOnGreen,
+                      size: 18,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
 
                 // Chevron — apunta arriba cuando está expandida
                 Icon(
@@ -117,7 +131,7 @@ class ExerciseCard extends StatelessWidget {
                       ? Icons.keyboard_arrow_up_rounded
                       : Icons.keyboard_arrow_down_rounded,
                   color: AppColors.textHint,
-                  size: 22,
+                  size: 20,
                 ),
               ],
             ),
@@ -146,7 +160,10 @@ class ExerciseCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        CompleteActionButton(onPressed: onCompletePressed),
+                        CompleteActionButton(
+                          onPressed: onCompletePressed,
+                          isCompleted: isCompleted,
+                        ),
                       ],
                     )
                   : const SizedBox.shrink(),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vitali/app/providers/daily_providers.dart';
+import 'package:vitali/app/providers/session_provider.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
 import 'package:vitali/shared/widgets/content_card.dart';
@@ -15,7 +18,7 @@ import 'package:vitali/shared/widgets/week_days_tracker.dart';
 /// Pantalla 14 — Mi Progreso.
 /// Muestra frase motivacional, checklist de hábitos de hoy con anillo de
 /// porcentaje y racha semanal con barra de progreso.
-class ProgressPage extends StatelessWidget {
+class ProgressPage extends ConsumerWidget {
   const ProgressPage({super.key});
 
   static const _habits = [
@@ -30,7 +33,35 @@ class ProgressPage extends StatelessWidget {
   static const _weekCompleted = [true, true, true, false, false, false, false];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionProvider);
+    final name = session.imcResult?.name ?? 'sebas';
+    final lifestyleTitle = session.lifestyle?.title ?? 'Deportista';
+    final water = ref.watch(waterCountProvider);
+    final completedExercises = ref.watch(completedExercisesProvider);
+    final manualHabits = ref.watch(manualHabitsProvider);
+
+    final habitChecked = [
+      water >= 8,
+      completedExercises.isNotEmpty,
+      manualHabits.contains(2),
+      manualHabits.contains(3),
+      manualHabits.contains(4),
+    ];
+    final completedCount = habitChecked.where((h) => h).length;
+    final progress = completedCount / _habits.length;
+
+    void toggleManualHabit(int i) {
+      final current = ref.read(manualHabitsProvider);
+      final updated = Set<int>.from(current);
+      if (updated.contains(i)) {
+        updated.remove(i);
+      } else {
+        updated.add(i);
+      }
+      ref.read(manualHabitsProvider.notifier).state = updated;
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -45,10 +76,10 @@ class ProgressPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Encabezado de sección
-                  const SectionHeader(
+                  SectionHeader(
                     emoji: '📊',
                     title: 'Mi Progreso',
-                    subtitle: 'sebas · Deportista',
+                    subtitle: '$name · $lifestyleTitle',
                   ),
 
                   Padding(
@@ -73,9 +104,10 @@ class ProgressPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Anillo de progreso
-                              const ProgressRing(
-                                progress: 0.0,
-                                centerLabel: '0%',
+                              ProgressRing(
+                                progress: progress,
+                                centerLabel:
+                                    '${(progress * 100).round()}%',
                               ),
                               const SizedBox(width: 16),
                               // Checklist de hábitos
@@ -83,7 +115,10 @@ class ProgressPage extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
-                                  children: _buildHabitList(),
+                                  children: _buildHabitList(
+                                    habitChecked,
+                                    toggleManualHabit,
+                                  ),
                                 ),
                               ),
                             ],
@@ -101,16 +136,21 @@ class ProgressPage extends StatelessWidget {
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
-                                children: const [
-                                  Text(
-                                    'Progreso semanal',
-                                    style: TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Progreso semanal',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                  Text(
+                                  const SizedBox(width: 8),
+                                  const Text(
                                     '3/7 días',
                                     style: TextStyle(
                                       color: AppColors.brandMain,
@@ -121,8 +161,8 @@ class ProgressPage extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              // Fila de días
-                              const WeekDaysTracker(
+                              // Fila de días — día actual calculado de DateTime.now()
+                              WeekDaysTracker(
                                 dayLabels: _weekLabels,
                                 dayCompleted: _weekCompleted,
                               ),
@@ -155,7 +195,10 @@ class ProgressPage extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildHabitList() {
+  List<Widget> _buildHabitList(
+    List<bool> checked,
+    void Function(int) onToggle,
+  ) {
     final widgets = <Widget>[];
     for (var i = 0; i < _habits.length; i++) {
       if (i > 0) {
@@ -171,7 +214,9 @@ class ProgressPage extends StatelessWidget {
       widgets.add(HabitChecklistItem(
         emoji: _habits[i].emoji,
         label: _habits[i].label,
-        isChecked: false,
+        isChecked: checked[i],
+        // Habits 0 and 1 are auto-computed; 2-4 are manually tappable
+        onTap: i >= 2 ? () => onToggle(i) : null,
       ));
     }
     return widgets;
