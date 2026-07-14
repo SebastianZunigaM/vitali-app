@@ -5,6 +5,7 @@ import 'package:vitali/app/providers/daily_providers.dart';
 import 'package:vitali/app/providers/session_provider.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
+import 'package:vitali/features/ai/presentation/providers/exercise_ai_provider.dart';
 import 'package:vitali/features/ai/presentation/providers/nutrition_ai_provider.dart';
 import 'package:vitali/features/auth/data/auth_repository.dart';
 
@@ -34,6 +35,7 @@ class VitaliAppBar extends ConsumerWidget {
       ref.read(completedExercisesProvider.notifier).state = const {};
       ref.read(manualHabitsProvider.notifier).state = const {};
       ref.read(nutritionAiProvider.notifier).reset();
+      ref.read(exerciseAiProvider.notifier).reset();
 
       // 3. Navegar a Login
       if (context.mounted) context.go(AppRoutes.login);

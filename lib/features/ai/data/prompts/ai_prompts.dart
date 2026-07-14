@@ -45,21 +45,42 @@ String buildExercisePrompt({
   required LifestyleOption lifestyle,
 }) {
   return '''
-Eres un entrenador personal experto. Genera una rutina de ejercicios personalizada en español.
+Eres un entrenador personal experto. Genera una rutina de ejercicios diaria personalizada en español.
 
 Datos del usuario:
+- Nombre: ${imc.name}
+- Edad: ${imc.age} años
+- Peso: ${imc.weight.toStringAsFixed(1)} kg
+- Altura: ${imc.height.toStringAsFixed(2)} m
 - IMC: ${imc.imc.toStringAsFixed(1)} (${imc.classification.label})
-- Objetivo recomendado: ${imc.recommendedGoal}
+- Objetivo: ${imc.recommendedGoal}
 - Estilo de vida: ${lifestyle.title}
 
-Responde ÚNICAMENTE con JSON válido, sin texto adicional, con esta estructura exacta:
-{
-  "title": "nombre corto de la rutina",
-  "subtitle": "descripción breve de 1 línea",
-  "exercises": ["ejercicio 1 con duración", "ejercicio 2 con duración", "ejercicio 3 con duración", "ejercicio 4 con duración"],
-  "recommendation": "consejo motivador breve para el usuario"
-}
+Reglas importantes:
+- Exactamente 5 ejercicios.
+- Seguros y realistas para una app general de bienestar.
+- Sin ejercicios peligrosos o de alto riesgo.
+- Adaptados al IMC y estilo de vida del usuario.
+- Intensidades permitidas: suave, moderada, alta (en minúscula, sin acentos).
+- El campo "description" puede ser cadena vacía "" para ejercicios simples.
+- Descripciones máximo 2 líneas si las hay.
+- Texto completamente en español.
+- Sin markdown. Sin ```. Solo JSON puro.
 
-La rutina debe ser realista, segura y adaptada al IMC y nivel de actividad del usuario.
+Responde ÚNICAMENTE con JSON válido. Sin texto adicional. Sin bloques markdown. Solo el JSON:
+{
+  "title": "Rutina de Ejercicios",
+  "subtitle": "${lifestyle.title} · tipo de rutina",
+  "recommendation": "consejo motivador breve, máximo 15 palabras",
+  "exercises": [
+    {
+      "emoji": "🔥",
+      "title": "nombre del ejercicio",
+      "durationMinutes": 10,
+      "intensity": "suave",
+      "description": "descripción breve o cadena vacía"
+    }
+  ]
+}
 ''';
 }
