@@ -24,7 +24,7 @@ import 'package:vitali/features/progress/presentation/pages/progress_page.dart';
 final routerProvider = Provider<GoRouter>((ref) => _router);
 
 final _router = GoRouter(
-  initialLocation: AppRoutes.login,
+  initialLocation: AppRoutes.splash,
   routes: [
     GoRoute(
       path: AppRoutes.splash,
