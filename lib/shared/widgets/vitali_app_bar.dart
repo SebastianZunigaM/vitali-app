@@ -5,6 +5,7 @@ import 'package:vitali/app/providers/daily_providers.dart';
 import 'package:vitali/app/providers/session_provider.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
+import 'package:vitali/features/ai/presentation/providers/nutrition_ai_provider.dart';
 import 'package:vitali/features/auth/data/auth_repository.dart';
 
 /// Barra de aplicación superior del shell principal.
@@ -25,13 +26,14 @@ class VitaliAppBar extends ConsumerWidget {
         // Si no hay sesión activa, ignorar y continuar con la limpieza.
       }
 
-      // 2. Limpiar sesión local y todos los providers de estado diario
+      // 2. Limpiar sesión local, providers diarios y plan de IA
       ref.read(sessionProvider.notifier).state = const AppSessionData();
       ref.read(waterCountProvider.notifier).state = 0;
       ref.read(saltGramsProvider.notifier).state = 0;
       ref.read(sugarGramsProvider.notifier).state = 0;
       ref.read(completedExercisesProvider.notifier).state = const {};
       ref.read(manualHabitsProvider.notifier).state = const {};
+      ref.read(nutritionAiProvider.notifier).reset();
 
       // 3. Navegar a Login
       if (context.mounted) context.go(AppRoutes.login);

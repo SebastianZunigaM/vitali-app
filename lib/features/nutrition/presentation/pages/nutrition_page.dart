@@ -5,6 +5,8 @@ import 'package:vitali/app/providers/daily_providers.dart';
 import 'package:vitali/app/providers/session_provider.dart';
 import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
+import 'package:vitali/features/ai/domain/models/nutrition_plan_ai_result.dart';
+import 'package:vitali/features/ai/presentation/providers/nutrition_ai_provider.dart';
 import 'package:vitali/shared/widgets/content_card.dart';
 import 'package:vitali/shared/widgets/daily_indicator_row.dart';
 import 'package:vitali/shared/widgets/info_pastel_card.dart';
@@ -15,8 +17,8 @@ import 'package:vitali/shared/widgets/vitali_app_bar.dart';
 import 'package:vitali/shared/widgets/vitali_bottom_nav.dart';
 
 /// Pantalla 08+09+10 — Plan de Alimentación.
-/// Estado local mínimo para cambiar visualmente entre Desayuno y Almuerzo.
-/// Los indicadores diarios y el tip nutricional son globales del día (no cambian por tab).
+/// Genera opciones personalizadas con Gemini al primer acceso.
+/// Fallback al plan base si Gemini no está disponible o falla.
 class NutritionPage extends ConsumerStatefulWidget {
   const NutritionPage({super.key});
 
@@ -27,27 +29,21 @@ class NutritionPage extends ConsumerStatefulWidget {
 class _NutritionPageState extends ConsumerState<NutritionPage> {
   int _activeTab = 0;
 
-  // Opciones estáticas por franja — índice = tab del MealTabsSelector
-  static const _mealOptions = [
-    // 0 — Desayuno (P08)
-    [
-      'Batido de proteína con banana y mantequilla de maní',
-      'Avena con proteína en polvo y frutas del bosque',
-      'Huevos revueltos con espinaca, tomate y pan integral',
-    ],
-    // 1 — Almuerzo (P10)
-    [
-      'Arroz integral con pechuga de pollo y vegetales al vapor',
-      'Pasta integral con carne magra y salsa de tomate natural',
-      'Bowl de quinoa con salmón, aguacate y pepino',
-    ],
-    // 2 — Cena (P11)
-    [
-      'Pechuga de pavo con camote y ensalada',
-      'Atún con arroz integral y brócoli',
-      'Sopa de lentejas con pan de centeno',
-    ],
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _triggerGeneration());
+  }
+
+  void _triggerGeneration() {
+    final aiState = ref.read(nutritionAiProvider);
+    if (aiState.hasGenerated || aiState.isLoading) return;
+    final session = ref.read(sessionProvider);
+    final imc = session.imcResult;
+    final lifestyle = session.lifestyle;
+    if (imc == null || lifestyle == null) return;
+    ref.read(nutritionAiProvider.notifier).generate(imc, lifestyle);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +52,14 @@ class _NutritionPageState extends ConsumerState<NutritionPage> {
     final water = ref.watch(waterCountProvider);
     final salt = ref.watch(saltGramsProvider);
     final sugar = ref.watch(sugarGramsProvider);
+
+    final aiState = ref.watch(nutritionAiProvider);
+    final plan = aiState.result ?? NutritionPlanAiResult.fallback;
+    final mealOptions = [
+      plan.breakfastOptions,
+      plan.lunchOptions,
+      plan.dinnerOptions,
+    ];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -82,7 +86,7 @@ class _NutritionPageState extends ConsumerState<NutritionPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Selector de comidas — cablea el cambio de tab
+                        // Selector de comidas
                         MealTabsSelector(
                           activeIndex: _activeTab,
                           onTabChanged: (i) => setState(() => _activeTab = i),
@@ -93,14 +97,28 @@ class _NutritionPageState extends ConsumerState<NutritionPage> {
                         // Tarjeta "Opciones para hoy" — cambia con el tab activo
                         ContentCard(
                           title: 'Opciones para hoy',
-                          child: NumberedOptionList(
-                            options: _mealOptions[_activeTab],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Indicador de estado IA (discreto)
+                              if (aiState.isLoading) ...[
+                                const _AiStatusText(
+                                    'Generando plan personalizado...'),
+                                const SizedBox(height: 8),
+                              ] else if (aiState.errorMessage != null) ...[
+                                const _AiStatusText('Usando plan base.'),
+                                const SizedBox(height: 8),
+                              ],
+                              NumberedOptionList(
+                                options: mealOptions[_activeTab],
+                              ),
+                            ],
                           ),
                         ),
 
                         const SizedBox(height: 12),
 
-                        // Tarjeta "Indicadores diarios" — global del día, no cambia por tab
+                        // Tarjeta "Indicadores diarios"
                         ContentCard(
                           title: '📊 Indicadores diarios',
                           child: Column(
@@ -205,15 +223,14 @@ class _NutritionPageState extends ConsumerState<NutritionPage> {
 
                         const SizedBox(height: 12),
 
-                        // Tarjeta "Tip nutricional" — global, no cambia por tab
-                        const InfoPastelCard(
+                        // Tarjeta "Tip nutricional" — usa tip de IA o fallback
+                        InfoPastelCard(
                           emoji: '🥦',
                           title: 'Tip nutricional',
-                          body:
-                              'Mastica lentamente y disfruta cada bocado. Comer despacio mejora la digestión y ayuda a reconocer la saciedad.',
+                          body: plan.dailyTip,
                           backgroundColor: AppColors.tipPastel,
                           titleColor: AppColors.brandMid,
-                          bodyColor: Color(0xFF3E5548),
+                          bodyColor: const Color(0xFF3E5548),
                         ),
                       ],
                     ),
@@ -232,6 +249,24 @@ class _NutritionPageState extends ConsumerState<NutritionPage> {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Texto de estado IA — discreto, debajo del título de la tarjeta.
+class _AiStatusText extends StatelessWidget {
+  final String text;
+  const _AiStatusText(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.textHint,
+        fontSize: 10,
+        fontWeight: FontWeight.w400,
       ),
     );
   }
