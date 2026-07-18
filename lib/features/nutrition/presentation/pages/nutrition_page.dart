@@ -7,6 +7,7 @@ import 'package:vitali/core/constants/app_colors.dart';
 import 'package:vitali/core/constants/app_constants.dart';
 import 'package:vitali/features/ai/domain/models/nutrition_plan_ai_result.dart';
 import 'package:vitali/features/ai/presentation/providers/nutrition_ai_provider.dart';
+import 'package:vitali/shared/widgets/app_outline_button.dart';
 import 'package:vitali/shared/widgets/content_card.dart';
 import 'package:vitali/shared/widgets/daily_indicator_row.dart';
 import 'package:vitali/shared/widgets/info_pastel_card.dart';
@@ -102,11 +103,14 @@ class _NutritionPageState extends ConsumerState<NutritionPage> {
                             children: [
                               // Indicador de estado IA (discreto)
                               if (aiState.isLoading) ...[
-                                const _AiStatusText(
-                                    'Generando plan personalizado...'),
+                                _AiStatusText(
+                                  aiState.result != null
+                                      ? 'Generando nuevas sugerencias...'
+                                      : 'Generando plan personalizado...',
+                                ),
                                 const SizedBox(height: 8),
                               ] else if (aiState.errorMessage != null) ...[
-                                const _AiStatusText('Usando plan base.'),
+                                _AiStatusText(aiState.errorMessage!),
                                 const SizedBox(height: 8),
                               ],
                               NumberedOptionList(
@@ -232,6 +236,38 @@ class _NutritionPageState extends ConsumerState<NutritionPage> {
                           titleColor: AppColors.brandMid,
                           bodyColor: const Color(0xFF3E5548),
                         ),
+
+                        // ── Botón regenerar plan ──────────────────────────
+                        if (session.imcResult != null &&
+                            session.lifestyle != null) ...[
+                          const SizedBox(height: 16),
+                          if (aiState.isLoading)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                                child: Text(
+                                  'Generando nuevas sugerencias...',
+                                  style: TextStyle(
+                                    color: AppColors.textHint,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            AppOutlineButton(
+                              label: 'Generar otro plan',
+                              icon: Icons.refresh_rounded,
+                              onPressed: () {
+                                ref
+                                    .read(nutritionAiProvider.notifier)
+                                    .regenerate(
+                                      session.imcResult!,
+                                      session.lifestyle!,
+                                    );
+                              },
+                            ),
+                        ],
                       ],
                     ),
                   ),

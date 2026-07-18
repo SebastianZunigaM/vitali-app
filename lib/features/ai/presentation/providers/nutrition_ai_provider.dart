@@ -106,6 +106,56 @@ class NutritionAiNotifier extends StateNotifier<NutritionAiState> {
     }
   }
 
+  /// Regenera el plan ignorando caché — siempre llama Gemini.
+  /// Conserva el plan anterior si falla.
+  Future<void> regenerate(ImcResultData imc, LifestyleOption lifestyle) async {
+    if (state.isLoading) return;
+
+    final previousResult = state.result;
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final prompt = buildNutritionPrompt(
+        imc: imc,
+        lifestyle: lifestyle,
+        avoidRepeating: true,
+      );
+      final raw = await GeminiService.generateText(prompt);
+      final json = AiJsonParser.extractJsonObject(raw);
+
+      if (json != null) {
+        final result = NutritionPlanAiResult.fromJson(json);
+        if (result.breakfastOptions.isNotEmpty &&
+            result.lunchOptions.isNotEmpty &&
+            result.dinnerOptions.isNotEmpty) {
+          saveNutritionPlanSilently(_repo, result);
+          state = state.copyWith(
+            result: result,
+            isLoading: false,
+            hasGenerated: true,
+            clearError: true,
+          );
+          return;
+        }
+      }
+      // No se obtuvo resultado válido — conservar plan anterior
+      state = state.copyWith(
+        result: previousResult ?? NutritionPlanAiResult.fallback,
+        isLoading: false,
+        hasGenerated: true,
+        errorMessage: 'No se pudo generar otro plan. Inténtalo de nuevo.',
+      );
+    } catch (e) {
+      debugPrint('[NutritionAiNotifier] Regenerate error: $e');
+      state = state.copyWith(
+        result: previousResult ?? NutritionPlanAiResult.fallback,
+        isLoading: false,
+        hasGenerated: true,
+        errorMessage: 'No se pudo generar otro plan. Inténtalo de nuevo.',
+      );
+    }
+  }
+
   void reset() => state = const NutritionAiState();
 }
 

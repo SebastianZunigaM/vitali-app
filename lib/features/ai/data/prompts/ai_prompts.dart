@@ -9,9 +9,23 @@ import 'package:vitali/features/onboarding/domain/models/lifestyle_option.dart';
 String buildNutritionPrompt({
   required ImcResultData imc,
   required LifestyleOption lifestyle,
+  bool avoidRepeating = false,
 }) {
+  final now = DateTime.now().toLocal();
+  const weekdays = [
+    'lunes',
+    'martes',
+    'miércoles',
+    'jueves',
+    'viernes',
+    'sábado',
+    'domingo'
+  ];
+  final dayName = weekdays[now.weekday - 1];
+  final dateStr = '${now.day}/${now.month}/${now.year}';
+
   return '''
-Eres un nutricionista experto. Genera un plan de alimentación diario personalizado en español para una persona costarricense.
+Eres un nutricionista experto. Genera un plan de alimentación para el día de hoy, $dayName $dateStr, personalizado en español para una persona costarricense.
 
 Datos del usuario:
 - Nombre: ${imc.name}
@@ -28,7 +42,7 @@ Reglas importantes:
 - Cada opción debe ser un plato concreto, saludable y con porciones razonables.
 - Adapta las opciones al objetivo y estilo de vida del usuario.
 - No hagas recomendaciones médicas. Solo opciones alimenticias.
-- Cada opción debe caber en una línea corta (máximo 12 palabras).
+- Cada opción debe caber en una línea corta (máximo 12 palabras).${avoidRepeating ? '\n- Evita repetir exactamente las mismas opciones de planes anteriores. Usa ingredientes o preparaciones diferentes.' : ''}
 
 Responde ÚNICAMENTE con JSON válido. Sin texto adicional. Sin bloques markdown. Sin explicaciones. Solo el JSON:
 {
